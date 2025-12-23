@@ -6,37 +6,37 @@ class CNNModel(nn.Module):
     def __init__(self, input_channels, num_classes):
         super(CNNModel, self).__init__()
         
-        # Block 1: Conv(3x3, pad 1, 175) -> MLP(1x1, 2240) -> MaxPool(2x2)
+
+        # Target ~5.2M parameters        
+        # Block 1: 40x40 -> 20x20
         self.block1 = nn.Sequential(
-            nn.Conv2d(input_channels, 175, kernel_size=3, padding=1),
+            nn.Conv2d(input_channels, 64, kernel_size=3, padding=1),
             nn.LeakyReLU(0.01),
-            nn.Conv2d(175, 2240, kernel_size=1),
-            nn.LeakyReLU(0.01),
-            nn.MaxPool2d(2, 2) # 40x40 -> 20x20
+            nn.MaxPool2d(2, 2)
         )
         
-        # Block 2: Conv(3x3, pad 1, 175) -> MLP(1x1, 640) -> MaxPool(2x2)
+        # Block 2: 20x20 -> 10x10
         self.block2 = nn.Sequential(
-            nn.Conv2d(2240, 175, kernel_size=3, padding=1),
+            nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.LeakyReLU(0.01),
-            nn.Conv2d(175, 640, kernel_size=1),
-            nn.LeakyReLU(0.01),
-            nn.MaxPool2d(2, 2) # 20x20 -> 10x10
+            nn.MaxPool2d(2, 2)
         )
         
-        # Block 3: Conv(3x3, pad 1, 175) -> MLP(1x1, 320) -> MaxPool(2x2)
+        # Block 3: 10x10 -> 5x5
         self.block3 = nn.Sequential(
-            nn.Conv2d(640, 175, kernel_size=3, padding=1),
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
             nn.LeakyReLU(0.01),
-            nn.Conv2d(175, 320, kernel_size=1),
-            nn.LeakyReLU(0.01),
-            nn.MaxPool2d(2, 2) # 10x10 -> 5x5
+            nn.MaxPool2d(2, 2)
         )
         
-        # Output layer
-        # Final feature map size is 320 channels * 5 * 5 = 8000
-        self.flatten = nn.Flatten()
-        self.classifier = nn.Linear(320 * 5 * 5, num_classes)
+        # Fully Connected Layers
+        # 5x5 * 256 = 6400
+        self.classifier = nn.Sequential(
+            nn.Flatten(),
+            nn.Linear(6400, 758),
+            nn.LeakyReLU(0.01),
+            nn.Linear(758, num_classes)
+        )
         
         # He Initialization
         self._initialize_weights()
@@ -53,7 +53,6 @@ class CNNModel(nn.Module):
         x = self.block1(x)
         x = self.block2(x)
         x = self.block3(x)
-        x = self.flatten(x)
         x = self.classifier(x)
         return x
 
